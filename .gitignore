@@ -6,3 +6,11 @@ dataset/cifar-10-batches-py/data_batch_3
 dataset/cifar-10-batches-py/data_batch_4
 dataset/cifar-10-batches-py/data_batch_5
 dataset/cifar-10-batches-py/test_batch
+dataset/FashionMNIST/raw/t10k-images-idx3-ubyte
+dataset/FashionMNIST/raw/t10k-images-idx3-ubyte.gz
+dataset/FashionMNIST/raw/t10k-labels-idx1-ubyte
+dataset/FashionMNIST/raw/t10k-labels-idx1-ubyte.gz
+dataset/FashionMNIST/raw/train-images-idx3-ubyte
+dataset/FashionMNIST/raw/train-images-idx3-ubyte.gz
+dataset/FashionMNIST/raw/train-labels-idx1-ubyte
+dataset/FashionMNIST/raw/train-labels-idx1-ubyte.gz
