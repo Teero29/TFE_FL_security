@@ -23,3 +23,12 @@ Flower_PyTorch_Binary_FashionMNIST/dataset/FashionMNIST/raw/train-images-idx3-ub
 Flower_PyTorch_Binary_FashionMNIST/dataset/FashionMNIST/raw/train-images-idx3-ubyte.gz
 Flower_PyTorch_Binary_FashionMNIST/dataset/FashionMNIST/raw/train-labels-idx1-ubyte
 Flower_PyTorch_Binary_FashionMNIST/dataset/FashionMNIST/raw/train-labels-idx1-ubyte.gz
+Flower_PyTorch_Binary_MNIST/__pycache__/binary.cpython-311.pyc
+Flower_PyTorch_Binary_MNIST/dataset/MNIST/raw/t10k-images-idx3-ubyte
+Flower_PyTorch_Binary_MNIST/dataset/MNIST/raw/t10k-images-idx3-ubyte.gz
+Flower_PyTorch_Binary_MNIST/dataset/MNIST/raw/t10k-labels-idx1-ubyte
+Flower_PyTorch_Binary_MNIST/dataset/MNIST/raw/t10k-labels-idx1-ubyte.gz
+Flower_PyTorch_Binary_MNIST/dataset/MNIST/raw/train-images-idx3-ubyte
+Flower_PyTorch_Binary_MNIST/dataset/MNIST/raw/train-images-idx3-ubyte.gz
+Flower_PyTorch_Binary_MNIST/dataset/MNIST/raw/train-labels-idx1-ubyte
+Flower_PyTorch_Binary_MNIST/dataset/MNIST/raw/train-labels-idx1-ubyte.gz

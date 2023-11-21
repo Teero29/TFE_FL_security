@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
 from torch import Tensor
-from torchvision.datasets import FashionMNIST
+from torchvision.datasets import MNIST
 from torchsummary import summary
 import time 
 import matplotlib.pyplot as plt
@@ -44,14 +44,14 @@ def load_data() -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoade
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,)),transforms.Resize((28, 28)), ])
 
     # Load the full FashionMNIST dataset
-    full_trainset = FashionMNIST(DATA_ROOT, train=True, download=True, transform=transform)
+    full_trainset = MNIST(DATA_ROOT, train=True, download=True, transform=transform)
     
     # Filter the dataset to only include "T-shirt/top" (label 0) and "Trouser" (label 1)
     selected_trainset = torch.utils.data.Subset(full_trainset, indices=torch.where((full_trainset.targets == 0) | (full_trainset.targets == 1))[0])
     trainloader = torch.utils.data.DataLoader(selected_trainset, batch_size=32, shuffle=True)
 
     # Load the test set
-    full_testset = FashionMNIST(DATA_ROOT, train=False, download=True, transform=transform)
+    full_testset = MNIST(DATA_ROOT, train=False, download=True, transform=transform)
 
     # Filter the dataset to include only the selected classes
     selected_testset = torch.utils.data.Subset(full_testset, indices=torch.where((full_testset.targets == 0) | (full_testset.targets == 1))[0])
@@ -71,7 +71,7 @@ def load_data_binary_augmented() -> Tuple[torch.utils.data.DataLoader, torch.uti
     transform_test = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,)),transforms.Resize((28, 28)),])
 
     # Load the full FashionMNIST dataset
-    full_trainset = FashionMNIST(DATA_ROOT, train=True, download=True, transform=transform_train)
+    full_trainset = MNIST(DATA_ROOT, train=True, download=True, transform=transform_train)
 
 
     # Create a new dataset with augmented samples and corresponding labels
@@ -94,7 +94,7 @@ def load_data_binary_augmented() -> Tuple[torch.utils.data.DataLoader, torch.uti
     trainloader = torch.utils.data.DataLoader(selected_trainset, batch_size=32, shuffle=True)
 
     # Load the test set
-    full_testset = FashionMNIST(DATA_ROOT, train=False, download=True, transform=transform_test)
+    full_testset = MNIST(DATA_ROOT, train=False, download=True, transform=transform_test)
 
     # Filter the dataset to include only the selected classes
     selected_testset = torch.utils.data.Subset(full_testset, indices=torch.where((full_testset.targets == 0) | (full_testset.targets == 1))[0])

@@ -22,7 +22,7 @@ class BrightenBackdoorBinaryClient(fl.client.NumPyClient):
         testloader: torch.utils.data.DataLoader,
         num_examples: Dict,
         backdoor_trigger_label: int = 1,  # Set the label to trigger the backdoor
-        brighten_factor: float = 200,  # Factor to brighten the images
+        brighten_factor: float = 1.5,  # Factor to brighten the images
     ) -> None:
         self.model = model
         self.trainloader = trainloader
