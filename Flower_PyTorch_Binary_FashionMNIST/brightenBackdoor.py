@@ -1,40 +1,36 @@
-"""Flower client example using PyTorch for CIFAR-10 image classification."""
-
-import os
-import sys
-import timeit
-from collections import OrderedDict
-from typing import Dict, List, Tuple
-
 import flwr as fl
 import numpy as np
 import torch
-import torchvision
+from collections import OrderedDict
+from typing import Dict, List, Tuple
 
-import cifar
+import binary
 
 USE_FEDBN: bool = True
 
-# pylint: disable=no-member
 DEVICE: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# pylint: enable=no-member
 
+import random
 
-# Flower Client
-class CifarAttackClient(fl.client.NumPyClient):
-    """Flower client implementing CIFAR-10 image classification using PyTorch."""
+class BrightenBackdoorBinaryClient(fl.client.NumPyClient):
+    """Flower client implementing CIFAR-10 image classification using PyTorch with a brighten backdoor attack."""
 
     def __init__(
         self,
-        model: cifar.Net,
+        model: binary.Net,
         trainloader: torch.utils.data.DataLoader,
         testloader: torch.utils.data.DataLoader,
         num_examples: Dict,
+        backdoor_trigger_label: int = 8,  # Set the label to trigger the backdoor
+        brighten_factor: float = 1.5,  # Factor to brighten the images
     ) -> None:
         self.model = model
         self.trainloader = trainloader
         self.testloader = testloader
         self.num_examples = num_examples
+        self.backdoor_trigger_label = backdoor_trigger_label
+        self.brighten_factor = brighten_factor
+
 
     def get_parameters(self, config: Dict[str, str]) -> List[np.ndarray]:
         self.model.train()
@@ -62,14 +58,48 @@ class CifarAttackClient(fl.client.NumPyClient):
             state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
             self.model.load_state_dict(state_dict, strict=True)
 
+
     def fit(
         self, parameters: List[np.ndarray], config: Dict[str, str]
     ) -> Tuple[List[np.ndarray], int, Dict]:
-        # Set model parameters with poisoned data, train model, return updated model parameters
-        poisoned_parameters = self.poison_data(parameters)
-        self.set_parameters(poisoned_parameters)
-        cifar.train(self.model, self.trainloader, epochs=5, device=DEVICE)
+        # Set model parameters, train model, return updated model parameters
+        self.set_parameters(parameters)
+        
+        # Inject brighten backdoor during training
+        self.inject_brighten_backdoor()
+
+        # Train the model
+        binary.train(self.model, self.trainloader, epochs=5, device=DEVICE)
+        
+        # Reset backdoor after training
+        self.reset_backdoor()
+
         return self.get_parameters(config={}), self.num_examples["trainset"], {}
+
+    def inject_brighten_backdoor(self) -> None:
+        # Modify a small percentage of training data with label 5 to be brighter and have the backdoor trigger label
+        for data in self.trainloader:
+            inputs, labels = data
+            labels = labels.numpy()
+            indices_to_brighten = [
+                i for i in range(len(labels)) if labels[i] == 5
+            ]  # Find indices with label 5
+            # Inject brighten backdoor into a small percentage of data with label 5
+            indices_to_poison = random.sample(
+                indices_to_brighten, int(0.1 * len(indices_to_brighten))
+            )
+            inputs[indices_to_poison] = torch.clamp(
+                inputs[indices_to_poison] * self.brighten_factor, 0, 1
+            )
+            labels[indices_to_poison] = self.backdoor_trigger_label
+            labels = torch.from_numpy(labels)
+            break  # Only inject backdoor in the first batch
+
+    def reset_backdoor(self) -> None:
+        # Reset backdoor trigger label after training
+        self.backdoor_trigger_label = 8  # Set it back to the original trigger label
+        self.brighten_factor = 1.5  # Reset brighten factor
+
 
     def evaluate(
         self, parameters: List[np.ndarray], config: Dict[str, str]
@@ -79,26 +109,22 @@ class CifarAttackClient(fl.client.NumPyClient):
         loss, accuracy = cifar.test(self.model, self.testloader, device=DEVICE)
         return float(loss), self.num_examples["testset"], {"accuracy": float(accuracy)}
 
-    def poison_data(self, parameters: List[np.ndarray]) -> List[np.ndarray]:
-        # Modify the parameters to introduce the poisoning attack
-        poisoned_parameters = [param + np.random.normal(0, 0.5, param.shape) for param in parameters]
-        return poisoned_parameters
-
-
 def main() -> None:
-    """Load data, start CifarClient."""
+    """Load data, start BrightenBackdoorCifarClient."""
 
     # Load data
-    trainloader, testloader, num_examples = cifar.load_data()
+    trainloader, testloader, num_examples = binary.load_data()
 
     # Load model
-    model = cifar.Net().to(DEVICE).train()
+    model = binary.Net().to(DEVICE).train()
 
     # Perform a single forward pass to properly initialize BatchNorm
     _ = model(next(iter(trainloader))[0].to(DEVICE))
 
-    # Start client
-    client = CifarAttackClient(model, trainloader, testloader, num_examples)
+    # Start client with brighten backdoor
+    client = BrightenBackdoorBinaryClient(
+        model, trainloader, testloader, num_examples
+    )
     fl.client.start_numpy_client(server_address="127.0.0.1:8080", client=client)
 
 
