@@ -42,22 +42,21 @@ class Net(nn.Module):
 
 def load_data() -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, Dict]:
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
-    trainset = FashionMNIST(DATA_ROOT, train=True, download=True, transform=transform)
-    
-    # Filter the dataset to only include "T-shirt/top" (label 0) and "Trouser" (label 1)
-    trainset.targets = torch.tensor([label in [0, 1] for label in trainset.targets])
-    
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True)
 
-    testset = FashionMNIST(DATA_ROOT, train=False, download=True, transform=transform)
+    # Load the full FashionMNIST dataset
+    full_trainset = FashionMNIST(DATA_ROOT, train=True, download=True, transform=transform)
     
     # Filter the dataset to only include "T-shirt/top" (label 0) and "Trouser" (label 1)
-    testset.targets = torch.tensor([label in [0, 1] for label in testset.targets])
-    
-    testloader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False)
-    num_examples = {"trainset": len(trainset), "testset": len(testset)}
-    print(set(trainset.targets.numpy()))
-    print(set(testset.targets.numpy()))
+    selected_trainset = torch.utils.data.Subset(full_trainset, indices=torch.where((full_trainset.targets == 0) | (full_trainset.targets == 1))[0])
+    trainloader = torch.utils.data.DataLoader(selected_trainset, batch_size=32, shuffle=True)
+
+    # Load the test set
+    full_testset = FashionMNIST(DATA_ROOT, train=False, download=True, transform=transform)
+
+    # Filter the dataset to include only the selected classes
+    selected_testset = torch.utils.data.Subset(full_testset, indices=torch.where((full_testset.targets == 0) | (full_testset.targets == 1))[0])
+    testloader = torch.utils.data.DataLoader(selected_testset, batch_size=32, shuffle=False)
+    num_examples = {"trainset": len(selected_trainset), "testset": len(selected_testset)}
     return trainloader, testloader, num_examples
 
 def load_data_binary_augmented() -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, Dict]:
@@ -90,6 +89,7 @@ def load_data_binary_augmented() -> Tuple[torch.utils.data.DataLoader, torch.uti
 
     # Filter the dataset to include only the selected classes
     selected_trainset = torch.utils.data.Subset(augmented_trainset, indices=torch.where((full_trainset.targets == 0) | (full_trainset.targets == 1))[0])
+    selected_trainset = torch.utils.data.ConcatDataset([selected_trainset, augmented_trainset])
     trainloader = torch.utils.data.DataLoader(selected_trainset, batch_size=32, shuffle=True)
 
     # Load the test set
@@ -311,10 +311,10 @@ def main_test():
         print("No GPU available.")
 
 if __name__ == "__main__":
-    main_data_augmented()
+    #main_data_augmented()
     #main_improved()
     #main()
-    #main_improved_data_augmented()
+    main_improved_data_augmented()
     #main_test()
 
 
