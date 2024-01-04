@@ -282,27 +282,6 @@ def main_improved_data_augmented():
     print("Accuracy: ", accuracy)
     print("Time: ", end_time - start_time)
 
-def plot_augmented_images(trainloader, num_rows=2, num_cols=5):
-    # Display some augmented images
-    dataiter = iter(trainloader)
-    images, labels = next(dataiter)
-
-    # Unnormalize the images
-    images = images * 0.5 + 0.5
-
-    # Plot the augmented images
-    fig, axes = plt.subplots(num_rows, num_cols, figsize=(15, 8))
-
-    for row in range(num_rows):
-        for col in range(num_cols):
-            idx = row * num_cols + col
-            np_image = images[idx].numpy().squeeze()
-            axes[row, col].imshow(np_image, cmap='gray')
-            axes[row, col].axis('off')
-            axes[row, col].set_title(f'Class: {labels[idx].item()}')
-
-    plt.show()
-
 def main_test():
     if torch.cuda.is_available():
         current_device = torch.cuda.current_device()
@@ -310,13 +289,46 @@ def main_test():
         print(f"Memory Usage: {torch.cuda.memory_allocated(current_device) / 1024**2:.2f} MB")
     else:
         print("No GPU available.")
+def plot_augmented_images(num_rows=2, num_cols=5):
+    trainloader, testloader, _ = load_data()
+    # Display some augmented images
+    dataiter = iter(trainloader)
+    images, labels = next(dataiter)
+
+    # Unnormalize the images
+    images = images * 0.5 + 0.5
+
+    # Plot the original and flipped images side by side
+    fig, axes = plt.subplots(num_rows, 2 * num_cols, figsize=(15, 8))
+
+    for row in range(num_rows):
+        for col in range(num_cols):
+            idx = row * num_cols + col
+
+            # Plot original image
+            np_image = images[idx].numpy().squeeze()
+            axes[row, 2 * col].imshow(np_image, cmap='gray')
+            axes[row, 2 * col].axis('off')
+            axes[row, 2 * col].set_title(f'Class: {labels[idx].item()} (Original)')
+
+            # Flip the label
+            flipped_label = 1 - labels[idx]
+
+            # Plot image with flipped label
+            np_flipped_image = images[idx].numpy().squeeze()
+            axes[row, 2 * col + 1].imshow(np_flipped_image, cmap='gray')
+            axes[row, 2 * col + 1].axis('off')
+            axes[row, 2 * col + 1].set_title(f'Class: {flipped_label.item()} (Flipped Label)')
+
+    plt.show()
 
 if __name__ == "__main__":
     #main_data_augmented()
     #main_improved()
     #main()
-    main_improved_data_augmented()
+    #main_improved_data_augmented()
     #main_test()
+    plot_augmented_images()
 
 
 

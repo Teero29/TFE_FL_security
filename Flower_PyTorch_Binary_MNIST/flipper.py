@@ -1,4 +1,3 @@
-"""Flower client example using PyTorch for CIFAR-10 image classification."""
 
 import os
 import sys
@@ -11,7 +10,7 @@ import flwr as fl
 import numpy as np
 import torch
 import torchvision
-
+import random
 import binary
 
 USE_FEDBN: bool = True
@@ -22,7 +21,6 @@ DEVICE: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Flower Client
 class BinaryAttackClient(fl.client.NumPyClient):
-    """Flower client implementing CIFAR-10 image classification using PyTorch."""
 
     def __init__(
         self,
@@ -66,10 +64,25 @@ class BinaryAttackClient(fl.client.NumPyClient):
         self, parameters: List[np.ndarray], config: Dict[str, str]
     ) -> Tuple[List[np.ndarray], int, Dict]:
         # Set model parameters with poisoned data, train model, return updated model parameters
-        poisoned_parameters = self.poison_data(parameters)
-        self.set_parameters(poisoned_parameters)
+        self.set_parameters(parameters)
+
+        # Apply label flipping attack
+        flip_percentage = 0.1 
+        self.apply_label_flipping_attack(flip_percentage)
+
         binary.train(self.model, self.trainloader, epochs=5, device=DEVICE)
         return self.get_parameters(config={}), self.num_examples["trainset"], {}
+    
+    def apply_label_flipping_attack(self, flip_percentage: float) -> None:
+        # Randomly flip labels in the training dataset
+        for i, (data, labels) in enumerate(self.trainloader):
+            num_flips = int(flip_percentage * len(labels))
+            flip_indices = random.sample(range(len(labels)), num_flips)
+            for flip_index in flip_indices:
+                labels[flip_index] = 1 - labels[flip_index]  # Flip the label
+
+            # Update the labels in the dataset
+            self.trainloader.dataset.targets[i * self.trainloader.batch_size : (i + 1) * self.trainloader.batch_size] = labels
 
     def evaluate(
         self, parameters: List[np.ndarray], config: Dict[str, str]
@@ -79,22 +92,11 @@ class BinaryAttackClient(fl.client.NumPyClient):
         loss, accuracy = binary.test(self.model, self.testloader, device=DEVICE)
         return float(loss), self.num_examples["testset"], {"accuracy": float(accuracy)}
 
-    def poison_data(self, parameters: List[np.ndarray]) -> List[np.ndarray]:
-        # Modify the training data to introduce the poisoning attack by adding noise
-        for idx, (inputs, labels) in enumerate(self.trainloader):
-            inputs += np.random.normal(0, 0.1, inputs.shape)  # Adjust the noise level as needed
-            self.trainloader.dataset.data[idx] = inputs.numpy()
-
-        return parameters
-
-
-
 def main() -> None:
     """Load data, start CifarClient."""
 
     # Load data
     trainloader, testloader, num_examples = binary.load_data()
-
     # Load model
     model = binary.Net().to(DEVICE).train()
 

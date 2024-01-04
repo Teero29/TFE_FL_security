@@ -10,7 +10,7 @@ from torchsummary import summary
 import time 
 import matplotlib.pyplot as plt
 import numpy as np
-
+from sklearn.metrics import roc_auc_score
 
 DATA_ROOT = "./dataset"
 
@@ -135,22 +135,31 @@ def test(
     net: Net,
     testloader: torch.utils.data.DataLoader,
     device: torch.device,
-) -> Tuple[float, float]:
+) -> Tuple[float, float, float]:
     criterion = nn.CrossEntropyLoss()
-    correct, loss = 0, 0.0
-
     net.to(device)
     net.eval()
+
+    all_labels = []
+    all_probs = []
+
     with torch.no_grad():
         for data in testloader:
             images, labels = data[0].to(device), data[1].to(device)
             outputs = net(images)
-            loss += criterion(outputs, labels).item()
-            _, predicted = torch.max(outputs.data, 1)
-            correct += (predicted == labels).sum().item()
-    accuracy = correct / len(testloader.dataset)
-    return loss, accuracy
 
+            loss = criterion(outputs, labels).item()
+
+            _, predicted = torch.max(outputs.data, 1)
+            correct = (predicted == labels).sum().item()
+
+            all_labels.extend(labels.cpu().numpy())
+            all_probs.extend(torch.nn.functional.softmax(outputs, dim=1)[:, 1].cpu().numpy())
+
+    accuracy = correct / len(testloader.dataset)
+    auc_roc = roc_auc_score(all_labels, all_probs)
+
+    return loss, accuracy, auc_roc
 
 
 class ImprovedNet(nn.Module):
@@ -217,9 +226,10 @@ def main():
     train(net=net, trainloader=trainloader, epochs=20, device=DEVICE)
     end_time = time.time()
     print("Evaluate model")
-    loss, accuracy = test(net=net, testloader=testloader, device=DEVICE)
+    loss, accuracy, auc = test(net=net, testloader=testloader, device=DEVICE)
     print("Loss: ", loss)
     print("Accuracy: ", accuracy)
+    print("AUC: ", auc )
     print("Time: ", end_time - start_time)
 
 
@@ -314,8 +324,8 @@ def main_test():
 if __name__ == "__main__":
     #main_data_augmented()
     #main_improved()
-    #main()
-    main_improved_data_augmented()
+    main()
+    #main_improved_data_augmented()
     #main_test()
 
 

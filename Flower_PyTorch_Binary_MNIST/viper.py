@@ -5,7 +5,7 @@ import sys
 import timeit
 from collections import OrderedDict
 from typing import Dict, List, Tuple
-
+import matplotlib.pyplot as plt
 import flwr as fl
 import numpy as np
 import torch
@@ -84,6 +84,70 @@ class BinaryAttackClient(fl.client.NumPyClient):
             inputs += torch.randn_like(inputs) * 0.9  # Add Gaussian noise with std 0.5 to inputs
 
 
+
+def brighten_images(images, factor=1.5):
+    # Brighten the images
+    brightened_images = torch.clamp(images * factor, 0, 1)
+    return brightened_images
+
+def to_grayscale(images):
+    # Convert images to grayscale
+    grayscale_images = torch.mean(images, dim=1, keepdim=True)
+    return grayscale_images
+
+def plot_images(data_loader, num_images=5, brighten_factor=1.5):
+    # Get a batch of images from the data loader
+    data_iter = iter(data_loader)
+    images, _ = next(data_iter)
+
+    # Convert images to grayscale
+    grayscale_images = to_grayscale(images)
+
+    # Brighten grayscale images
+    brightened_images = brighten_images(grayscale_images, factor=brighten_factor)
+
+    # Plot the images
+    fig, axes = plt.subplots(2, num_images, figsize=(12, 4))
+    for i in range(num_images):
+        # Plot original images (in grayscale)
+        axes[0, i].imshow(np.squeeze(grayscale_images[i].numpy(), axis=0), cmap='gray')
+        axes[0, i].axis("off")
+        axes[0, i].set_title("Original")
+
+        # Plot brightened images (in grayscale)
+        axes[1, i].imshow(np.squeeze(brightened_images[i].numpy(), axis=0), cmap='gray')
+        axes[1, i].axis("off")
+        axes[1, i].set_title("Brightened")
+
+    plt.show()
+
+def plot_poison_images(data_loader, num_images=5, brighten_factor=1):
+    # Get a batch of images from the data loader
+    data_iter = iter(data_loader)
+    images, _ = next(data_iter)
+
+    # Brighten images before poisoning
+    brightened_images_before = brighten_images(images, factor=brighten_factor)
+
+    # Plot the images
+    fig, axes = plt.subplots(2, num_images, figsize=(12, 4))
+    for i in range(num_images):
+        # Plot images before poisoning
+        axes[0, i].imshow(np.transpose(brightened_images_before[i].numpy(), (1, 2, 0)))
+        axes[0, i].axis("off")
+        axes[0, i].set_title("Before Poisoning")
+
+        # Brighten images after poisoning
+        poisoned_inputs = images[i] + torch.randn_like(images[i]) * 0.9
+        brightened_images_after = brighten_images(poisoned_inputs, factor=brighten_factor)
+
+        # Plot images after poisoning
+        axes[1, i].imshow(np.transpose(brightened_images_after.numpy(), (1, 2, 0)))
+        axes[1, i].axis("off")
+        axes[1, i].set_title("After Poisoning")
+
+    plt.show()
+
 def main() -> None:
     """Load data, start CifarClient."""
 
@@ -100,6 +164,11 @@ def main() -> None:
     client = BinaryAttackClient(model, trainloader, testloader, num_examples)
     fl.client.start_numpy_client(server_address="127.0.0.1:8080", client=client)
 
+def showdata() -> None:
 
+    # Load data
+    trainloader, testloader, num_examples = binary.load_data()
+    plot_poison_images(trainloader)
 if __name__ == "__main__":
-    main()
+    showdata()
+    #main()
